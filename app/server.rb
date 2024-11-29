@@ -13,11 +13,18 @@ class YourRedisServer
     server = TCPServer.new(@port)
     puts("Server started on port #{@port}")
 
+    clients = []
+
     loop do
       client = server.accept
-      puts("New client connected")
+      puts("New client connected #{client}")
+      clients << client
+      puts("Clients: #{clients.size}")
 
-      handle(client)
+      clients.each { |client_|
+        puts("Handling client #{client_}")
+        handle(client_)
+      }
     end
   end
 
@@ -28,7 +35,7 @@ class YourRedisServer
       command_s = parse_command(client)
       puts("Command: #{command_s}")
 
-      next if command_s.nil?
+      break if command_s.nil?
 
       if command_s.class == Array
         puts("Command_Array: #{command_s}")
@@ -43,8 +50,7 @@ class YourRedisServer
       end
     end
 
-    client.close
-    puts("Client disconnected")
+    puts("Switching client")
   end
 
   def parse_command(client)
