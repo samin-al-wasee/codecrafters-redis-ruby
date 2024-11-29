@@ -19,6 +19,8 @@ class YourRedisServer
       response = "+PONG\r\n"
       client.puts(response)
     end
+
+    client.close
   end
 end
 
