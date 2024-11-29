@@ -10,17 +10,20 @@ class YourRedisServer
     puts("Logs from your program will appear here!")
 
     server = TCPServer.new(@port)
-    client = server.accept
 
     loop do
-      command = client.gets
-      break if command.nil?
+      client = server.accept
 
-      response = "+PONG\r\n"
-      client.puts(response)
+      loop do
+        command = client.gets
+        break if command.nil?
+
+        response = "+PONG\r\n"
+        client.puts(response)
+      end
+
+      client.close
     end
-
-    client.close
   end
 end
 
