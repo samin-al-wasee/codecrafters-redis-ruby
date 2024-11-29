@@ -1,3 +1,4 @@
+require 'fcntl'
 require "socket"
 require_relative "resp"
 
@@ -11,17 +12,23 @@ class YourRedisServer
     puts("Logs from your program will appear here!")
 
     server = TCPServer.new(@port)
+    server.fcntl(Fcntl::F_SETFL, Fcntl::O_NONBLOCK)
     puts("Server started on port #{@port}")
 
     clients = []
 
     loop do
-      client = server.accept
-      puts("New client connected #{client}")
-      clients << client
-      puts("Clients: #{clients.size}")
+      begin
+        client = server.accept_nonblock
+        puts("New client connected #{client}")
 
-      clients.cycle { |client_|
+        clients << client
+        puts("Clients: #{clients.size}")
+      rescue IO::WaitReadable, Errno::EINTR
+        puts("No new clients")
+      end
+
+      clients.each { |client_|
         puts("Handling client #{client_}")
         handle(client_)
       }
@@ -31,22 +38,32 @@ class YourRedisServer
   private
 
   def handle(client)
+    handled = false
+
     loop do
+      break if handled
+
       command_s = parse_command(client)
       puts("Command: #{command_s}")
 
-      break if command_s.nil?
+      continue if command_s.nil?
 
       if command_s.class == Array
         puts("Command_Array: #{command_s}")
+
         command_s.each do |command|
           handler = RESP::COMMAND_HANDLERS.fetch(command, RESP::INVALID_COMMAND_HANDLER)
           handler.call(client)
         end
+
+        handled = true
       else
         puts("Command_Single: #{command_s}")
+
         handler = RESP::COMMAND_HANDLERS.fetch(command_s, RESP::INVALID_COMMAND_HANDLER)
         handler.call(client)
+
+        handled = true
       end
     end
 
@@ -56,8 +73,10 @@ class YourRedisServer
   def parse_command(client)
     data_type_info = client.gets
     puts("Data Type Info: #{data_type_info}")
+
     data_type_symbol = data_type_info[0]
     puts("Data Type Symbol: #{data_type_symbol}")
+
     data_type = RESP::DATA_TYPES[data_type_symbol]
     puts("Data Type: #{data_type}")
 
