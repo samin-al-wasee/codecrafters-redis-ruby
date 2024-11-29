@@ -21,7 +21,7 @@ class YourRedisServer
       clients << client
       puts("Clients: #{clients.size}")
 
-      clients.each { |client_|
+      clients.cycle { |client_|
         puts("Handling client #{client_}")
         handle(client_)
       }
