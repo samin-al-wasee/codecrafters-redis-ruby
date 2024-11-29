@@ -18,8 +18,10 @@ class YourRedisServer
         command = client.gets
         break if command.nil?
 
-        response = "+PONG\r\n"
-        client.puts(response)
+        if command == "PING"
+          response = "+PONG\r\n"
+          client.puts(response)
+        end
       end
 
       client.close
